@@ -5,27 +5,33 @@ const app = express();
 
 app.use(express.json())
 
+app.use((req, res, next) => {
+  console.log('middleware');
+  next();
+})
 
-// app.get('/', (req, res) => {
-//   res.status(404).json({mes: 'hello', app: 'Natours'})
-// })
-// app.post('/', (req, res) => {
-//   res.send('You can post here')
-// })
+app.use((req, res, next) => {
+  req.requestTime = new Date().toISOString();
+  next();
+})
+
 
 const tours = JSON.parse(fs.readFileSync(`${__dirname}/dev-data/data/tours-simple.json`))
 
-app.get('/api/v1/tours',(req, res) => {
+const getAllTours = (req, res) => {
+  console.log(req.requestTime);
+
   res.status(200).json({
     status: 'ok',
+    requestAt: req.requestTime,
     results: tours.length,
     data: {
       tours 
     }
   })
-})
+}
 
-app.get('/api/v1/tours/:id',(req, res) => {
+const getTour = (req, res) => {
   console.log(req.params);
   const id = req.params.id * 1; // conver string to number
   const tour = tours.find(el => el.id === id)
@@ -45,9 +51,9 @@ app.get('/api/v1/tours/:id',(req, res) => {
       tour 
     }
   })
-})
+}
 
-app.post('/api/v1/tours', (req, res) => {
+const createTour = (req, res) => {
   // console.log(req.body);
   const newId = tours[tours.length - 1 ].id + 1;
   const newTour = Object.assign({id: newId}, req.body)
@@ -62,9 +68,9 @@ app.post('/api/v1/tours', (req, res) => {
       }
     })
   })
-})
+}
 
-app.patch('/api/v1/tours/:id', (req, res) => {
+const updateTour =  (req, res) => {
   console.log(req.params);
   
   if(req.params.id * 1 > tours.length) {
@@ -80,9 +86,9 @@ app.patch('/api/v1/tours/:id', (req, res) => {
       tour: '<Updataed tour here...>'
     }
   })
-})
+}
 
-app.delete('/api/v1/tours/:id', (req, res) => {
+const deleteTour = (req, res) => {
   console.log(req.params);
 
   if(req.params.id * 1 > tours.length) {
@@ -96,9 +102,19 @@ app.delete('/api/v1/tours/:id', (req, res) => {
     status: 'ok',
     data: null
   })
-})
+}
+
+app
+  .route('/api/v1/tours')
+  .get(getAllTours)
+  .post(createTour);
 
 
+app
+  .route('/api/v1/tours/:id')
+  .get(getTour)
+  .patch(updateTour)
+  .delete(deleteTour);
 
 
 const port = 3000;
