@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const mongoose = require('mongoose');
 const validator = require('validator');
 const bcrypt = require('bcryptjs');
@@ -38,6 +39,8 @@ const userSchema = new mongoose.Schema({
     },
   },
   passwordChangedAt: Date,
+  passwordResetToken: String,
+  passwordResetExpires: Date,
 });
 
 userSchema.pre('save', async function (next) {
@@ -72,6 +75,25 @@ userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
 
   // False means NOT changed
   return false;
+};
+
+userSchema.methods.craetePasswordResetToken = function () {
+  // crypto 產生的 random 16進位的32個字元的 token(plain text)
+  const resetToken = crypto.randomBytes(32).toString('hex');
+
+  // 將 resetToken 用 sha256 加密
+  this.passwordResetToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+
+  console.log({ resetToken }, this.passwordResetToken);
+
+  // resetToken 過期的時間
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+
+  // return plain text to return to user
+  return resetToken;
 };
 
 const User = mongoose.model('User', userSchema);
